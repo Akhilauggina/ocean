@@ -1,0 +1,1186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>INCOIS - Ocean Hazard Reporting Platform</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0066cc, #004499);
+            min-height: 100vh;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 1rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            color: white;
+            font-weight: bold;
+            font-size: 1.5rem;
+        }
+
+        .logo::before {
+            content: "🌊";
+            font-size: 2rem;
+            margin-right: 10px;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .nav-btn {
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 25px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+        }
+
+        .nav-btn:hover, .nav-btn.active {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(255, 255, 255, 0.2);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .main-content {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        .section {
+            display: none;
+            padding: 2rem;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        .section-title {
+            font-size: 2rem;
+            color: #004499;
+            margin-bottom: 1.5rem;
+            text-align: center;
+            position: relative;
+        }
+
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 3px;
+            background: linear-gradient(90deg, #0066cc, #004499);
+            border-radius: 2px;
+        }
+
+        /* Dashboard Styles */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 15px;
+            text-align: center;
+            transform: translateY(0);
+            transition: transform 0.3s ease;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-card:nth-child(2) {
+            background: linear-gradient(135deg, #4ecdc4, #44a08d);
+        }
+
+        .stat-card:nth-child(3) {
+            background: linear-gradient(135deg, #45b7d1, #96c93d);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+
+        .map-container {
+            height: 400px;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+
+        /* Report Form Styles */
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #004499;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e1e8ed;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #0066cc;
+            box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+        }
+
+        .file-upload {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .file-upload input[type="file"] {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .file-upload-label {
+            display: block;
+            padding: 1rem;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            text-align: center;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .file-upload:hover .file-upload-label {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .submit-btn {
+            background: linear-gradient(135deg, #0066cc, #004499);
+            color: white;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 25px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-top: 1rem;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 102, 204, 0.3);
+        }
+
+        /* Social Feed Styles */
+        .social-filters {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 0.5rem 1rem;
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .filter-btn.active {
+            background: #0066cc;
+            color: white;
+            border-color: #0066cc;
+        }
+
+        .social-feed {
+            max-height: 500px;
+            overflow-y: auto;
+            border: 1px solid #e1e8ed;
+            border-radius: 15px;
+            padding: 1rem;
+        }
+
+        .social-post {
+            background: white;
+            border: 1px solid #e1e8ed;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            transition: transform 0.2s ease;
+        }
+
+        .social-post:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .post-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .post-platform {
+            padding: 0.2rem 0.5rem;
+            background: #0066cc;
+            color: white;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            margin-right: 0.5rem;
+        }
+
+        .post-time {
+            color: #657786;
+            font-size: 0.9rem;
+        }
+
+        .post-content {
+            margin-bottom: 0.5rem;
+        }
+
+        .post-sentiment {
+            display: inline-block;
+            padding: 0.2rem 0.5rem;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .sentiment-positive {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .sentiment-negative {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .sentiment-neutral {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        /* Analysis Styles */
+        .analysis-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .trend-chart {
+            background: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .chart-placeholder {
+            height: 200px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        /* Recent Reports */
+        .reports-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .report-item {
+            background: white;
+            border: 1px solid #e1e8ed;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .report-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .report-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .report-type {
+            padding: 0.2rem 0.6rem;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: white;
+        }
+
+        .type-tsunami {
+            background: #ff6b6b;
+        }
+
+        .type-storm {
+            background: #4ecdc4;
+        }
+
+        .type-wave {
+            background: #45b7d1;
+        }
+
+        .type-current {
+            background: #96c93d;
+        }
+
+        .report-time {
+            color: #657786;
+            font-size: 0.9rem;
+        }
+
+        .report-location {
+            color: #0066cc;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .analysis-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .nav-buttons {
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+
+            .social-filters {
+                justify-content: center;
+            }
+        }
+
+        /* Loading Animation */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Success Message */
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            border: 1px solid #c3e6cb;
+            display: none;
+        }
+
+        /* Hotspot indicators on map */
+        .hotspot-indicator {
+            background: radial-gradient(circle, rgba(255, 0, 0, 0.8) 0%, rgba(255, 0, 0, 0.2) 70%);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.2); opacity: 0.4; }
+            100% { transform: scale(1); opacity: 0.8; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <div class="logo">
+                INCOIS Ocean Hazard Platform
+            </div>
+            <div class="nav-buttons">
+                <button class="nav-btn active" onclick="showSection('dashboard')">Dashboard</button>
+                <button class="nav-btn" onclick="showSection('report')">Report Hazard</button>
+                <button class="nav-btn" onclick="showSection('social')">Social Feed</button>
+                <button class="nav-btn" onclick="showSection('analysis')">Analysis</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="main-content">
+            <!-- Dashboard Section -->
+            <div id="dashboard" class="section active">
+                <h2 class="section-title">Ocean Hazard Monitoring Dashboard</h2>
+                
+                <div class="dashboard-grid">
+                    <div class="stat-card">
+                        <div class="stat-number" id="activeReports">247</div>
+                        <div class="stat-label">Active Reports</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="socialMentions">1,432</div>
+                        <div class="stat-label">Social Media Mentions</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="hotspots">12</div>
+                        <div class="stat-label">Active Hotspots</div>
+                    </div>
+                </div>
+
+                <div class="map-container">
+                    <div id="map" style="height: 100%; width: 100%;"></div>
+                </div>
+
+                <div class="analysis-grid">
+                    <div class="trend-chart">
+                        <h3>Recent Reports</h3>
+                        <div class="reports-list" id="recentReports"></div>
+                    </div>
+                    <div class="trend-chart">
+                        <h3>Threat Level Trends</h3>
+                        <div class="chart-placeholder">Interactive Chart Placeholder</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Report Section -->
+            <div id="report" class="section">
+                <h2 class="section-title">Report Ocean Hazard</h2>
+                
+                <div class="success-message" id="successMessage">
+                    ✅ Your report has been submitted successfully! Thank you for helping keep our coasts safe.
+                </div>
+
+                <form id="hazardForm" class="form-grid">
+                    <div>
+                        <div class="form-group">
+                            <label for="hazardType">Hazard Type *</label>
+                            <select id="hazardType" required>
+                                <option value="">Select hazard type...</option>
+                                <option value="tsunami">Tsunami</option>
+                                <option value="storm-surge">Storm Surge</option>
+                                <option value="high-waves">High Waves</option>
+                                <option value="swell-surge">Swell Surge</option>
+                                <option value="coastal-current">Coastal Current</option>
+                                <option value="abnormal-tide">Abnormal Tide</option>
+                                <option value="coastal-damage">Coastal Damage</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="severity">Severity Level *</label>
+                            <select id="severity" required>
+                                <option value="">Select severity...</option>
+                                <option value="low">Low</option>
+                                <option value="moderate">Moderate</option>
+                                <option value="high">High</option>
+                                <option value="extreme">Extreme</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="location">Location *</label>
+                            <input type="text" id="location" placeholder="Enter location or click on map" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="coordinates">Coordinates</label>
+                            <input type="text" id="coordinates" placeholder="Will be auto-filled from location" readonly>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="form-group">
+                            <label for="description">Description *</label>
+                            <textarea id="description" rows="4" placeholder="Describe what you observed..." required></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="reporterInfo">Reporter Information</label>
+                            <input type="text" id="reporterInfo" placeholder="Name and contact (optional)">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Upload Media</label>
+                            <div class="file-upload">
+                                <input type="file" id="mediaUpload" accept="image/*,video/*" multiple>
+                                <label for="mediaUpload" class="file-upload-label">
+                                    📷 Click to upload photos/videos
+                                </label>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="submit-btn">
+                            Submit Report 🚨
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Social Feed Section -->
+            <div id="social" class="section">
+                <h2 class="section-title">Social Media Monitoring</h2>
+                
+                <div class="social-filters">
+                    <button class="filter-btn active" onclick="filterSocial('all')">All Platforms</button>
+                    <button class="filter-btn" onclick="filterSocial('twitter')">Twitter</button>
+                    <button class="filter-btn" onclick="filterSocial('facebook')">Facebook</button>
+                    <button class="filter-btn" onclick="filterSocial('youtube')">YouTube</button>
+                    <button class="filter-btn" onclick="filterSocial('positive')">Positive</button>
+                    <button class="filter-btn" onclick="filterSocial('negative')">Negative</button>
+                </div>
+
+                <div class="social-feed" id="socialFeed"></div>
+            </div>
+
+            <!-- Analysis Section -->
+            <div id="analysis" class="section">
+                <h2 class="section-title">Data Analysis & Insights</h2>
+                
+                <div class="analysis-grid">
+                    <div class="trend-chart">
+                        <h3>Hazard Frequency by Type</h3>
+                        <div class="chart-placeholder">Pie Chart: Hazard Distribution</div>
+                    </div>
+                    <div class="trend-chart">
+                        <h3>Geographic Hotspot Analysis</h3>
+                        <div class="chart-placeholder">Heat Map: Coastal Vulnerability</div>
+                    </div>
+                    <div class="trend-chart">
+                        <h3>Social Media Sentiment</h3>
+                        <div class="chart-placeholder">Line Chart: Sentiment Over Time</div>
+                    </div>
+                    <div class="trend-chart">
+                        <h3>Response Time Metrics</h3>
+                        <div class="chart-placeholder">Bar Chart: Avg Response Times</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.js"></script>
+    <script>
+        // Global variables
+        let map;
+        let currentSection = 'dashboard';
+        let reports = [];
+        let socialPosts = [];
+        let markers = [];
+
+        // Initialize the platform
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeMap();
+            loadSampleData();
+            updateDashboard();
+            renderSocialFeed();
+        });
+
+        // Navigation functionality
+        function showSection(sectionId) {
+            // Hide all sections
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            // Remove active class from all nav buttons
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Show selected section
+            document.getElementById(sectionId).classList.add('active');
+            
+            // Add active class to clicked button
+            event.target.classList.add('active');
+            
+            currentSection = sectionId;
+            
+            // Refresh map if switching to dashboard
+            if (sectionId === 'dashboard') {
+                setTimeout(() => {
+                    map.invalidateSize();
+                }, 100);
+            }
+        }
+
+        // Initialize Leaflet map
+        function initializeMap() {
+            map = L.map('map').setView([20.5937, 78.9629], 5); // Center on India
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            // Add click event to get coordinates
+            map.on('click', function(e) {
+                if (currentSection === 'report') {
+                    document.getElementById('coordinates').value = `${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)}`;
+                    
+                    // Reverse geocoding (simplified)
+                    document.getElementById('location').value = `Location: ${e.latlng.lat.toFixed(4)}, ${e.latlng.lng.toFixed(4)}`;
+                }
+            });
+        }
+
+        // Load sample data
+        function loadSampleData() {
+            // Sample reports data
+            reports = [
+                {
+                    id: 1,
+                    type: 'tsunami',
+                    severity: 'high',
+                    location: 'Chennai Coast',
+                    coordinates: [13.0827, 80.2707],
+                    description: 'Unusual wave patterns observed, water receding rapidly',
+                    time: new Date(Date.now() - 30 * 60000).toLocaleString(),
+                    reporter: 'Local Fisherman'
+                },
+                {
+                    id: 2,
+                    type: 'storm',
+                    severity: 'moderate',
+                    location: 'Mumbai Harbour',
+                    coordinates: [18.9220, 72.8347],
+                    description: 'Strong winds and rising water levels',
+                    time: new Date(Date.now() - 75 * 60000).toLocaleString(),
+                    reporter: 'Port Authority'
+                },
+                {
+                    id: 3,
+                    type: 'wave',
+                    severity: 'high',
+                    location: 'Visakhapatnam Beach',
+                    coordinates: [17.6868, 83.2185],
+                    description: 'Waves exceeding 4 meters height',
+                    time: new Date(Date.now() - 120 * 60000).toLocaleString(),
+                    reporter: 'Beach Patrol'
+                },
+                {
+                    id: 4,
+                    type: 'current',
+                    severity: 'low',
+                    location: 'Kochi Backwaters',
+                    coordinates: [9.9312, 76.2673],
+                    description: 'Unusual current patterns affecting boat navigation',
+                    time: new Date(Date.now() - 200 * 60000).toLocaleString(),
+                    reporter: 'Tourist Guide'
+                }
+            ];
+
+            // Sample social media posts
+            socialPosts = [
+                {
+                    platform: 'Twitter',
+                    content: 'Massive waves hitting the Chennai coastline! Everyone please stay safe! #ChennaiWaves #TsunamiAlert',
+                    sentiment: 'negative',
+                    time: '15 min ago',
+                    engagement: 234
+                },
+                {
+                    platform: 'Facebook',
+                    content: 'Local authorities doing great work evacuating coastal areas. Proud of our emergency response team!',
+                    sentiment: 'positive',
+                    time: '32 min ago',
+                    engagement: 156
+                },
+                {
+                    platform: 'YouTube',
+                    content: 'Live footage of unusual tidal behavior near Visakhapatnam port',
+                    sentiment: 'neutral',
+                    time: '1 hour ago',
+                    engagement: 1200
+                },
+                {
+                    platform: 'Twitter',
+                    content: 'Why is the government not responding fast enough to coastal warnings? We need better systems!',
+                    sentiment: 'negative',
+                    time: '1.5 hours ago',
+                    engagement: 89
+                },
+                {
+                    platform: 'Facebook',
+                    content: 'INCOIS early warning system saved many lives today. Technology working for people!',
+                    sentiment: 'positive',
+                    time: '2 hours ago',
+                    engagement: 445
+                }
+            ];
+
+            // Add markers to map
+            addMarkersToMap();
+        }
+
+        // Add markers to map
+        function addMarkersToMap() {
+            // Clear existing markers
+            markers.forEach(marker => map.removeLayer(marker));
+            markers = [];
+
+            reports.forEach(report => {
+                let color = getSeverityColor(report.severity);
+                let icon = getHazardIcon(report.type);
+                
+                let marker = L.circleMarker(report.coordinates, {
+                    radius: 10,
+                    fillColor: color,
+                    color: '#fff',
+                    weight: 2,
+                    opacity: 1,
+                    fillOpacity: 0.8
+                }).addTo(map);
+
+                marker.bindPopup(`
+                    <div style="min-width: 200px;">
+                        <h4>${icon} ${report.type.toUpperCase()}</h4>
+                        <p><strong>Location:</strong> ${report.location}</p>
+                        <p><strong>Severity:</strong> ${report.severity}</p>
+                        <p><strong>Time:</strong> ${report.time}</p>
+                        <p><strong>Description:</strong> ${report.description}</p>
+                        <p><strong>Reporter:</strong> ${report.reporter}</p>
+                    </div>
+                `);
+
+                markers.push(marker);
+
+                // Add hotspot animation for high severity
+                if (report.severity === 'high' || report.severity === 'extreme') {
+                    let hotspot = L.circle(report.coordinates, {
+                        radius: 5000,
+                        className: 'hotspot-indicator',
+                        fillOpacity: 0.3,
+                        color: '#ff0000',
+                        weight: 1
+                    }).addTo(map);
+                    markers.push(hotspot);
+                }
+            });
+        }
+
+        // Get color based on severity
+        function getSeverityColor(severity) {
+            const colors = {
+                'low': '#96c93d',
+                'moderate': '#45b7d1',
+                'high': '#ff6b6b',
+                'extreme': '#ff3838'
+            };
+            return colors[severity] || '#666';
+        }
+
+        // Get icon for hazard type
+        function getHazardIcon(type) {
+            const icons = {
+                'tsunami': '🌊',
+                'storm': '⛈️',
+                'wave': '🌊',
+                'current': '➡️',
+                'tide': '⬆️',
+                'damage': '⚠️'
+            };
+            return icons[type] || '🚨';
+        }
+
+        // Update dashboard statistics
+        function updateDashboard() {
+            // Simulate real-time updates
+            document.getElementById('activeReports').textContent = reports.length;
+            document.getElementById('socialMentions').textContent = socialPosts.length * 286; // Simulate larger numbers
+            document.getElementById('hotspots').textContent = reports.filter(r => r.severity === 'high' || r.severity === 'extreme').length;
+            
+            renderRecentReports();
+        }
+
+        // Render recent reports
+        function renderRecentReports() {
+            const container = document.getElementById('recentReports');
+            container.innerHTML = '';
+
+            reports.slice(0, 5).forEach(report => {
+                const reportDiv = document.createElement('div');
+                reportDiv.className = 'report-item';
+                reportDiv.innerHTML = `
+                    <div class="report-header">
+                        <span class="report-type type-${report.type}">${getHazardIcon(report.type)} ${report.type.toUpperCase()}</span>
+                        <span class="report-time">${report.time}</span>
+                    </div>
+                    <div class="report-location">${report.location}</div>
+                    <div class="report-content">${report.description}</div>
+                `;
+                container.appendChild(reportDiv);
+            });
+        }
+
+        // Render social media feed
+        function renderSocialFeed() {
+            const container = document.getElementById('socialFeed');
+            container.innerHTML = '';
+
+            socialPosts.forEach(post => {
+                const postDiv = document.createElement('div');
+                postDiv.className = 'social-post';
+                postDiv.innerHTML = `
+                    <div class="post-header">
+                        <span class="post-platform">${post.platform}</span>
+                        <span class="post-time">${post.time}</span>
+                        <span class="post-sentiment sentiment-${post.sentiment}">${post.sentiment.toUpperCase()}</span>
+                    </div>
+                    <div class="post-content">${post.content}</div>
+                    <div class="post-engagement">💬 ${post.engagement} engagements</div>
+                `;
+                container.appendChild(postDiv);
+            });
+        }
+
+        // Filter social media posts
+        function filterSocial(filter) {
+            // Update active filter button
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // Filter and render posts
+            let filteredPosts = socialPosts;
+            
+            if (filter !== 'all') {
+                if (['positive', 'negative', 'neutral'].includes(filter)) {
+                    filteredPosts = socialPosts.filter(post => post.sentiment === filter);
+                } else {
+                    filteredPosts = socialPosts.filter(post => post.platform.toLowerCase() === filter);
+                }
+            }
+
+            const container = document.getElementById('socialFeed');
+            container.innerHTML = '';
+
+            filteredPosts.forEach(post => {
+                const postDiv = document.createElement('div');
+                postDiv.className = 'social-post';
+                postDiv.innerHTML = `
+                    <div class="post-header">
+                        <span class="post-platform">${post.platform}</span>
+                        <span class="post-time">${post.time}</span>
+                        <span class="post-sentiment sentiment-${post.sentiment}">${post.sentiment.toUpperCase()}</span>
+                    </div>
+                    <div class="post-content">${post.content}</div>
+                    <div class="post-engagement">💬 ${post.engagement} engagements</div>
+                `;
+                container.appendChild(postDiv);
+            });
+        }
+
+        // Handle form submission
+        document.getElementById('hazardForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Simulate form submission
+            const submitBtn = document.querySelector('.submit-btn');
+            const originalText = submitBtn.innerHTML;
+            
+            submitBtn.innerHTML = '<span class="loading"></span> Submitting...';
+            submitBtn.disabled = true;
+
+            setTimeout(() => {
+                // Create new report from form data
+                const newReport = {
+                    id: reports.length + 1,
+                    type: document.getElementById('hazardType').value,
+                    severity: document.getElementById('severity').value,
+                    location: document.getElementById('location').value,
+                    coordinates: document.getElementById('coordinates').value.split(', ').map(parseFloat),
+                    description: document.getElementById('description').value,
+                    time: new Date().toLocaleString(),
+                    reporter: document.getElementById('reporterInfo').value || 'Anonymous'
+                };
+
+                // Add to reports array
+                reports.unshift(newReport);
+
+                // Update map and dashboard
+                addMarkersToMap();
+                updateDashboard();
+
+                // Show success message
+                document.getElementById('successMessage').style.display = 'block';
+                
+                // Reset form
+                document.getElementById('hazardForm').reset();
+                
+                // Reset submit button
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+
+                // Hide success message after 5 seconds
+                setTimeout(() => {
+                    document.getElementById('successMessage').style.display = 'none';
+                }, 5000);
+
+            }, 2000); // Simulate 2 second processing time
+        });
+
+        // Handle file upload preview
+        document.getElementById('mediaUpload').addEventListener('change', function(e) {
+            const label = document.querySelector('.file-upload-label');
+            const files = e.target.files;
+            
+            if (files.length > 0) {
+                label.innerHTML = `📷 ${files.length} file(s) selected`;
+            } else {
+                label.innerHTML = '📷 Click to upload photos/videos';
+            }
+        });
+
+        // Simulate real-time updates
+        setInterval(() => {
+            // Update statistics with slight variations
+            const activeReports = document.getElementById('activeReports');
+            const socialMentions = document.getElementById('socialMentions');
+            const hotspots = document.getElementById('hotspots');
+
+            // Add some randomness to simulate real-time data
+            const currentReports = parseInt(activeReports.textContent);
+            const currentMentions = parseInt(socialMentions.textContent);
+            const currentHotspots = parseInt(hotspots.textContent);
+
+            activeReports.textContent = Math.max(0, currentReports + Math.floor(Math.random() * 3) - 1);
+            socialMentions.textContent = Math.max(0, currentMentions + Math.floor(Math.random() * 50) - 25);
+            hotspots.textContent = Math.max(0, currentHotspots + Math.floor(Math.random() * 2) - 1);
+
+        }, 10000); // Update every 10 seconds
+
+        // Add some sample dynamic behavior
+        setTimeout(() => {
+            // Simulate new social media post
+            const newPost = {
+                platform: 'Twitter',
+                content: 'Real-time update: Coastal areas in Kerala showing normal conditions. All clear for now! #CoastalSafety',
+                sentiment: 'positive',
+                time: 'Just now',
+                engagement: Math.floor(Math.random() * 100) + 50
+            };
+            
+            socialPosts.unshift(newPost);
+            
+            // Re-render if social section is active
+            if (currentSection === 'social') {
+                renderSocialFeed();
+            }
+        }, 15000); // Add new post after 15 seconds
+
+        // Geolocation support
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function(position) {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+                
+                // Add user location marker
+                L.marker([lat, lng]).addTo(map)
+                    .bindPopup('📍 Your Location')
+                    .openPopup();
+                
+                // Center map on user location
+                map.setView([lat, lng], 10);
+            });
+        }
+
+        // Multilingual support simulation
+        const languages = {
+            'en': 'English',
+            'hi': 'हिन्दी',
+            'ta': 'தமிழ்',
+            'te': 'తెలుగు',
+            'ml': 'മലയാളം'
+        };
+
+        // Add language selector (would be implemented with actual translation)
+        function addLanguageSelector() {
+            const langSelector = document.createElement('select');
+            langSelector.style.position = 'absolute';
+            langSelector.style.top = '10px';
+            langSelector.style.right = '10px';
+            langSelector.style.zIndex = '1000';
+            langSelector.style.padding = '5px';
+            langSelector.style.borderRadius = '5px';
+            
+            Object.entries(languages).forEach(([code, name]) => {
+                const option = document.createElement('option');
+                option.value = code;
+                option.textContent = name;
+                langSelector.appendChild(option);
+            });
+            
+            document.body.appendChild(langSelector);
+        }
+
+        // Initialize language selector
+        addLanguageSelector();
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.altKey) {
+                switch(e.key) {
+                    case '1':
+                        showSection('dashboard');
+                        break;
+                    case '2':
+                        showSection('report');
+                        break;
+                    case '3':
+                        showSection('social');
+                        break;
+                    case '4':
+                        showSection('analysis');
+                        break;
+                }
+            }
+        });
+
+        // Export functionality (would integrate with backend)
+        function exportData(format) {
+            const data = {
+                reports: reports,
+                socialPosts: socialPosts,
+                timestamp: new Date().toISOString()
+            };
+            
+            if (format === 'json') {
+                const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'incois_data.json';
+                a.click();
+            }
+        }
+
+        // Offline support simulation
+        let isOnline = navigator.onLine;
+        let offlineReports = [];
+
+        window.addEventListener('online', () => {
+            isOnline = true;
+            // Sync offline reports when back online
+            if (offlineReports.length > 0) {
+                console.log('Syncing', offlineReports.length, 'offline reports...');
+                reports = [...offlineReports, ...reports];
+                offlineReports = [];
+                addMarkersToMap();
+                updateDashboard();
+            }
+        });
+
+        window.addEventListener('offline', () => {
+            isOnline = false;
+            console.log('Application now in offline mode');
+        });
+
+        console.log('🌊 INCOIS Ocean Hazard Reporting Platform Loaded Successfully!');
+        console.log('💡 Use Alt+1,2,3,4 for quick navigation between sections');
+        console.log('🗺️ Click on the map while in Report section to set coordinates');
+    </script>
+</body>
+</html>
